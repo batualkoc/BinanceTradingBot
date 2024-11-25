@@ -1,0 +1,61 @@
+{
+    "apiKey": "YOUR_API_KEY",
+    "secretKey": "YOUR_SECRET_KEY",
+    "bot": "YOUR_TELEGRAM_BOT_KEY",
+    "symbols": [
+        "RENDER",
+        "SOL",
+        "AVAX",
+        "1000PEPE",
+        "DOGE"
+    ],
+    "leverage": 20,
+    "takeProfit": "true",
+    "positions": {
+        "RENDER": {
+            "open_orders": true,
+            "long_position_a": true,
+            "short_position_a": true,
+            "long_position": true,
+            "short_position": true,
+            "long_tk": true,
+            "short_tk": true
+        },
+        "SOL": {
+            "open_orders": true,
+            "long_position_a": true,
+            "short_position_a": true,
+            "long_position": false,
+            "short_position": true,
+            "long_tk": false,
+            "short_tk": false
+        },
+        "AVAX": {
+            "open_orders": true,
+            "long_position_a": true,
+            "short_position_a": true,
+            "long_position": true,
+            "short_position": true,
+            "long_tk": false,
+            "short_tk": true
+        },
+        "1000PEPE": {
+            "open_orders": true,
+            "long_position_a": true,
+            "short_position_a": true,
+            "long_position": false,
+            "short_position": true,
+            "long_tk": true,
+            "short_tk": false
+        },
+        "DOGE": {
+            "open_orders": true,
+            "long_position_a": true,
+            "short_position_a": true,
+            "long_position": false,
+            "short_position": true,
+            "long_tk": false,
+            "short_tk": false
+        }
+    }
+}
