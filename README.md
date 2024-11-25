@@ -2,8 +2,8 @@
 
 ## Açıklama (Description)
 
-Bu Python tabanlı bot, Binance Futures API'si ve Telegram bot entegrasyonu kullanarak otomatik kripto para ticareti yapmak için tasarlanmıştır.  
-This Python-based bot is designed for automated cryptocurrency trading using Binance Futures API and Telegram bot integration.
+- Bu Python tabanlı bot, Binance Futures API'si ve Telegram bot entegrasyonu kullanarak otomatik kripto para ticareti yapmak için tasarlanmıştır.  
+- This Python-based bot is designed for automated cryptocurrency trading using Binance Futures API and Telegram bot integration.
 
 ---
 
