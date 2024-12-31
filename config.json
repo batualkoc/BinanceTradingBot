@@ -3,59 +3,79 @@
     "secretKey": "YOUR_SECRET_KEY",
     "bot": "YOUR_TELEGRAM_BOT_KEY",
     "symbols": [
-        "RENDER",
-        "SOL",
-        "AVAX",
+        "1000BONK",
+        "GOAT",
+        "MEME",
         "1000PEPE",
-        "DOGE"
+        "DOGE",
+        "1000SHIB",
+        "PNUT"
     ],
     "leverage": 20,
     "takeProfit": "true",
     "positions": {
-        "RENDER": {
-            "open_orders": true,
+        "1000BONK": {
             "long_position_a": true,
             "short_position_a": true,
             "long_position": true,
             "short_position": true,
             "long_tk": true,
-            "short_tk": true
+            "short_tk": true,
+            "open_orders": true
         },
-        "SOL": {
-            "open_orders": true,
-            "long_position_a": true,
-            "short_position_a": true,
-            "long_position": false,
-            "short_position": true,
-            "long_tk": false,
-            "short_tk": false
-        },
-        "AVAX": {
-            "open_orders": true,
+        "GOAT": {
             "long_position_a": true,
             "short_position_a": true,
             "long_position": true,
             "short_position": true,
-            "long_tk": false,
-            "short_tk": true
+            "long_tk": true,
+            "short_tk": true,
+            "open_orders": true
+        },
+        "MEME": {
+            "long_position_a": true,
+            "short_position_a": true,
+            "long_position": true,
+            "short_position": true,
+            "long_tk": true,
+            "short_tk": true,
+            "open_orders": true
         },
         "1000PEPE": {
-            "open_orders": true,
             "long_position_a": true,
             "short_position_a": true,
-            "long_position": false,
+            "long_position": true,
             "short_position": true,
             "long_tk": true,
-            "short_tk": false
+            "short_tk": true,
+            "open_orders": true
         },
         "DOGE": {
-            "open_orders": true,
             "long_position_a": true,
             "short_position_a": true,
-            "long_position": false,
+            "long_position": true,
             "short_position": true,
-            "long_tk": false,
-            "short_tk": false
+            "long_tk": true,
+            "short_tk": true,
+            "open_orders": true
+        },
+        "1000SHIB": {
+            "long_position_a": true,
+            "short_position_a": true,
+            "long_position": true,
+            "short_position": true,
+            "long_tk": true,
+            "short_tk": true,
+            "open_orders": true
+        },
+        "PNUT": {
+            "long_position_a": true,
+            "short_position_a": true,
+            "long_position": true,
+            "short_position": true,
+            "long_tk": true,
+            "short_tk": true,
+            "open_orders": true
         }
     }
 }
