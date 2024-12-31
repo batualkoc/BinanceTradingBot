@@ -3,7 +3,8 @@ import pandas as pd
 import os
 import json
 import time
-from indicators import calculate_indicators
+from trading_operations import long_enter, short_enter
+from indicators import calculate_indicators, calculate_pivots
 from telegram.ext import Updater, CommandHandler
 
 running = True
@@ -77,6 +78,7 @@ def main():
                 balance = exchange.fetch_balance()
                 exchange.set_leverage(leverage, symbol)
                 exchange.set_margin_mode('cross', symbol)
+
                 open_orders = data['positions'].get(symbol_name, {}).get("open_orders")
                 long_position = data['positions'].get(symbol_name, {}).get("long_position")
                 short_position = data['positions'].get(symbol_name, {}).get("short_position")
@@ -120,21 +122,59 @@ def main():
 
                 update.dispatcher.add_handler(CommandHandler("close", close))
 
-                total_money = float(balance["total"]["USDT"])
-                trade_money = total_money / leverage
-                minus_money = total_money - trade_money
-                excess_balance = total_money - minus_money
-                if excess_balance > 0:
-                    percentage_of_trade_money = int(((excess_balance / total_money) * 20) * leverage)
-                else:
-                    percentage_of_trade_money = 0
 
                 baslangic = time.time()
                 order_book = exchange.fetch_order_book(symbol)
-                bars = exchange.fetch_ohlcv(symbol, timeframe="15m", since=None, limit=100)
+                bars = exchange.fetch_ohlcv(symbol, timeframe="1m", since=None, limit=500)
+                bars2 = exchange.fetch_ohlcv(symbol, timeframe="1d", since=None, limit=500)
                 df = pd.DataFrame(bars, columns=["timestamp", "open", "high", "low", "close", "volume"])
+                df2 =pd.DataFrame(bars2, columns=["timestamp", "open", "high", "low", "close", "volume"])
                 current_price = order_book["asks"][0][0] if long_position or short_position else order_book["bids"][0][0]
                 df = calculate_indicators(df)
+                df2 = calculate_pivots(df2)
+
+                def calculate_volatility_metrics(df):
+                    # ATR bazlı volatilite
+                    atr_volatility = df['atr'].iloc[-1] / df['close'].iloc[-1]
+
+                    # Son 10 mumdaki fiyat değişim yüzdesi (20'den 10'a düşürdük çünkü 1dk)
+                    price_change = abs((df['close'].iloc[-1] - df['close'].iloc[-10]) / df['close'].iloc[-10])
+
+
+                    metrics = {
+                        'atr_volatility': atr_volatility,
+                        'price_change': price_change,
+                        'volatility_level': 'LOW',
+                        'atr_multiplier': 1,  # Stop loss mesafesini kısalttık
+                        'tp_multiplier_long': 1.0015,  # Hedefleri küçülttük
+                        'tp_multiplier_short': 0.9985,
+                        'trade_percentage': 18
+                    }
+
+                    # 1 dakikalık için eşikler
+                    if atr_volatility > 0.0045 and price_change > 0.005:  # Daha hassas eşikler
+                        metrics.update({
+                            'volatility_level': 'HIGH',
+                            'atr_multiplier': 2,
+                            'tp_multiplier_long': 1.0025,
+                            'tp_multiplier_short': 0.9975,
+                            'trade_percentage': 22
+                        })
+                    elif atr_volatility > 0.0025:  # Çok hassas ATR kontrolü
+                        metrics.update({
+                            'volatility_level': 'MEDIUM',
+                            'atr_multiplier': 1.5,
+                            'tp_multiplier_long': 1.002,
+                            'tp_multiplier_short': 0.998,
+                            'trade_percentage': 20
+                        })
+
+                    return metrics
+
+
+                total_money = float(balance["total"]["USDT"])
+                vol_metrics = calculate_volatility_metrics(df)
+                percentage_of_trade_money = vol_metrics['trade_percentage']
 
                 positions = balance["info"]["positions"]
                 for position in positions:
@@ -151,55 +191,46 @@ def main():
                             short_position_a = True
                             long_position_a = True
 
-                def message(update,context):
-                    if long_tk == True:
-                        update.message.reply_text(f"Long Pozition Entered {symbol} Entered Price - {round(df['close'].iloc[-1],5)}")
-                    if short_tk == True:
-                        update.message.reply_text(f"Short Pozition Entered {symbol} - Entered Price {round(df['close'].iloc[-1],5)}")
 
-
-
-                if short_position_a == True and df['rsi'].iloc[-1] < 25:
+                if short_position_a == True and df['rsi'].iloc[-1] < 20 and df['close'].iloc[-1] < df2['s2'].iloc[-1]:
                     long_position = False
-                    short_position = False
+                    short_position = True
                     short_position_a = False
                     open_orders = False
 
-                if long_position_a == True and df['rsi'].iloc[-1] > 75:
+                if long_position_a == True and df['rsi'].iloc[-1] > 80 and df['close'].iloc[-1] > df2['r2'].iloc[-1]:
                     short_position = False
-                    long_position = False
+                    long_position = True
                     long_position_a = False
                     open_orders = False
 
-                if long_position == False and df['rsi'].iloc[-1] >= 31 and df['rsi'].iloc[-2] <= 30 and df['rsi'].iloc[-3] <= 30 and df['rsi'].iloc[-4] <= 30 and df['adx'].iloc[-1] >= df['adx'].iloc[-2] and df['adx'].iloc[-2] >= df['adx'].iloc[-3]:
+                if long_position == False and df['rsi'].iloc[-1] >= 31 and df['close'].iloc[-1] > df2['s2'].iloc[-1]:
                     long_enter(symbol, exchange, total_money, percentage_of_trade_money, leverage, current_price)
                     long_position = True
                     long_tk = True
 
-                if short_position == False and df['rsi'].iloc[-1] <= 69 and df['rsi'].iloc[-2] >= 70 and df['rsi'].iloc[-3] >= 70 and df['rsi'].iloc[-4] >= 70 and df['adx'].iloc[-1] <= df['adx'].iloc[-2] and df['adx'].iloc[-2] <= df['adx'].iloc[-3]:
+                if short_position == False and df['rsi'].iloc[-1] <= 69 and df['close'].iloc[-1] < df2['r2'].iloc[-1]:
                     short_enter(symbol, exchange, total_money, percentage_of_trade_money, leverage, current_price)
                     short_position = True
                     short_tk = True
 
                 if long_tk == True and entry_Price > 0 and amount > 0:
-                    message(update,context=None)
-                    long_take_profit = entry_Price + (1 * df['atr'].iloc[-1])
-                    long_stop_loss = entry_Price - (2 * df['atr'].iloc[-1])
+                    long_take_profit = df2['s1'].iloc[-1]
+                    long_stop_loss = df2['s3'].iloc[-1]
                     exchange.create_take_profit_order(symbol=symbol, type='market', side='sell', amount=amount, takeProfitPrice=long_take_profit)
                     exchange.create_stop_loss_order(symbol=symbol, type='market', side='sell', amount=amount, stopLossPrice=long_stop_loss)
                     long_tk = False
                     open_orders = True
 
 
-
                 if short_tk == True and entry_Price > 0 and amount < 0:
-                    message(update,context=None)
-                    short_take_profit = entry_Price - (1 * df['atr'].iloc[-1])
-                    short_stop_loss = entry_Price + (2 * df['atr'].iloc[-1])
+                    short_take_profit = df2['r1'].iloc[-1]
+                    short_stop_loss = df2['r3'].iloc[-1]
                     exchange.create_take_profit_order(symbol=symbol, type='market', side='buy', amount=abs(amount), takeProfitPrice=short_take_profit)
                     exchange.create_stop_loss_order(symbol=symbol, type='market', side='buy', amount=abs(amount), stopLossPrice=short_stop_loss)
                     short_tk = False
                     open_orders = True
+
 
                 if long_position_a == False:
                     position_value = "Short Position Search"
@@ -229,17 +260,18 @@ def main():
                     print("Total Profit:", round(float(balance["total"]["USDT"]) - starting_money, 8),
                           "USDT || %" + str(round(((float(balance["total"]["USDT"]) - starting_money) / starting_money) * 100, 8)))
                 son = time.time()
-                print("Delay:", round(son - baslangic, 3), "seconds")
+                print("Delay:", round(son - baslangic, 8), "seconds")
 
                 indicator_message = f"Symbol Name: {str(symbol_name)}\n"
                 indicator_message += f"Close : {round(df['close'].iloc[-1],8)}\n"
                 indicator_message += f"RSI1: {round(df['rsi'].iloc[-1], 3)}\n"
-                indicator_message += f"RSI2: {round(df['rsi'].iloc[-2], 3)}\n"
-                indicator_message += f"RSI3: {round(df['rsi'].iloc[-3], 3)}\n"
-                indicator_message += f"RSI4: {round(df['rsi'].iloc[-4], 3)}\n"
-                indicator_message += f"ADX1: {round(df['adx'].iloc[-1], 3)}\n"
-                indicator_message += f"ADX2: {round(df['adx'].iloc[-2], 3)}\n"
-                indicator_message += f"ADX3: {round(df['adx'].iloc[-3], 3)}\n"
+                indicator_message += f"Fib R3: {round(df2['r3'].iloc[-1], 8)}\n"
+                indicator_message += f"Fib R2: {round(df2['r2'].iloc[-1], 8)}\n"
+                indicator_message += f"Fib R1: {round(df2['r1'].iloc[-1], 8)}\n"
+                indicator_message += f"Fib PP: {round(df2['pp'].iloc[-1], 8)}\n"
+                indicator_message += f"Fib S1: {round(df2['s1'].iloc[-1], 8)}\n"
+                indicator_message += f"Fib S2: {round(df2['s2'].iloc[-1], 8)}\n"
+                indicator_message += f"Fib S3: {round(df2['s3'].iloc[-1], 8)}\n"\
 
                 output_message = f"Starting USDT: {round(starting_money, 8)}\n"
                 output_message += f"Total USDT: {round(total_money, 8)}\n"
@@ -259,7 +291,7 @@ def main():
                                         f"{str(round(((float(balance['total']['USDT']) - starting_money) / starting_money) * 100, 8))}\n"
 
                 son = time.time()
-                output_message += f"Delay: {round(son - baslangic, 3)} seconds\n"
+                output_message += f"Delay: {round(son - baslangic, 8)} seconds\n"
 
                 if symbol_name not in data['positions']:
                     data['positions'][symbol_name] = {}
