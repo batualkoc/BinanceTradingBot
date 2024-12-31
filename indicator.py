@@ -58,3 +58,28 @@ def calculate_indicators(df):
     atr = AverageTrueRange(high=df['high'], low=df['low'], close=df['close'], window=14)
     df['atr'] = atr.average_true_range()
     return df
+    
+def calculate_pivots(df2):
+
+    # Önce lookback periyod için high, low, close değerlerini belirle
+    pivot_high = df2['high'].iloc[-2]
+    pivot_low = df2['low'].iloc[-2]
+    pivot_close = df2['close'].iloc[-2]  # Son kapanış
+
+    # PP (Pivot Point) hesaplama
+    df2['pp'] = (pivot_high + pivot_low + pivot_close) / 3
+
+    # Range hesaplama
+    range_hl = pivot_high - pivot_low
+
+    # Resistance Levels
+    df2['r1'] = df2['pp'] + (range_hl * 0.382)
+    df2['r2'] = df2['pp'] + (range_hl * 0.618)
+    df2['r3'] = df2['pp'] + range_hl
+
+    # Support Levels
+    df2['s1'] = df2['pp'] - (range_hl * 0.382)
+    df2['s2'] = df2['pp'] - (range_hl * 0.618)
+    df2['s3'] = df2['pp'] - range_hl
+
+    return df2
